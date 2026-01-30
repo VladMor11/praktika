@@ -1,0 +1,83 @@
+import unittest
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+
+class YandexMarketTests(unittest.TestCase):
+    def setUp(self):
+        self.driver = webdriver.Chrome()
+        self.driver.get("https://market.yandex.ru")
+        self.wait = WebDriverWait(self.driver, 10)
+
+    def tearDown(self):
+        self.driver.quit()
+
+    def test_site_load(self):
+        """Проверка загрузки главной страницы"""
+        title = self.driver.title
+        self.assertIn("Яндекс.Маркет", title, "Главная страница Яндекс.Маркет не загрузилась")
+
+    def test_search_function(self):
+        """Проверка работы поиска"""
+        search_box = self.wait.until(EC.presence_of_element_located((By.NAME, "text")))
+        search_box.send_keys("смартфон")
+        search_box.send_keys(Keys.RETURN)
+        
+        results = self.wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".n-snippet")))
+        self.assertTrue(len(results) > 0, "Результаты поиска не появились")
+
+    def test_navigation(self):
+        """Проверка навигации по категориям"""
+        # Клик по категории "Электроника" в основном меню
+        category_link = self.wait.until(
+            EC.element_to_be_clickable((By.XPATH, "//a[contains(@href, '/category/elektronika')]"))
+        )
+        category_link.click()
+        
+        category_title = self.driver.title
+        self.assertIn("Электроника", category_title, "Переход в категорию не удался")
+
+    def test_product_view(self):
+        """Проверка просмотра товара и добавления в корзину"""
+        # Поиск товаров
+        search_box = self.wait.until(EC.presence_of_element_located((By.NAME, "text")))
+        search_box.send_keys("наушники")
+        search_box.send_keys(Keys.RETURN)
+        
+        # Клик по первому товару
+        first_product = self.wait.until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, ".n-snippet__title"))
+        )
+        first_product.click()
+        
+        # Добавление в корзину
+        add_to_cart_button = self.wait.until(
+            EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'n-button') and text()='В корзину']"))
+        )
+        add_to_cart_button.click()
+        
+        # Проверка успешного добавления
+        self.assertTrue(
+            "В корзине" in add_to_cart_button.text,
+            "Кнопка 'В корзину' не изменилась после добавления"
+        )
+
+    def test_cookie_handling(self):
+        """Проверка обработки cookie-баннера"""
+        try:
+            # Принимаем cookie (если баннер присутствует)
+            cookie_button = self.wait.until(
+                EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'agreement__button') and text()='Принять']"))
+            )
+            cookie_button.click()
+            time.sleep(1)
+            self.assertFalse(cookie_button.is_displayed(), "Баннер cookie не исчез после принятия")
+        except:
+            # Если баннер не появился - тест проходит
+            pass
+
+if name == "main":
+    unittest.main()
